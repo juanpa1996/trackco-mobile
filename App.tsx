@@ -56,7 +56,7 @@ function MainTabs() {
       })}
     >
       <Tab.Screen name="Mapa"      component={MapScreen} />
-      <Tab.Screen name="Unidades" component={VehiclesNavigator} />
+      <Tab.Screen name="Unidades"  component={VehiclesNavigator} />
       <Tab.Screen name="Historial" component={HistoryScreen} />
       <Tab.Screen
         name="Alertas"
@@ -67,17 +67,30 @@ function MainTabs() {
   );
 }
 
-export default function App() {
-  const [screen, setScreen] = useState<Screen>("splash");
+function AppNavigator() {
+  const { token, sessionReady } = useAppContext();
+  const [splashDone, setSplashDone] = useState(false);
 
+  // Decide screen: wait for both splash animation and session restore
+  const ready = splashDone && sessionReady;
+  const screen: Screen = !ready ? "splash" : token ? "app" : "login";
+
+  return (
+    <>
+      <StatusBar style="light" backgroundColor="#080D1A" />
+      {screen === "splash" && <SplashScreen onFinish={() => setSplashDone(true)} />}
+      {screen === "login"  && <LoginScreen  onLogin={() => {}} />}
+      {screen === "app"    && <MainTabs />}
+    </>
+  );
+}
+
+export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AppProvider>
         <NavigationContainer>
-          <StatusBar style="light" backgroundColor="#080D1A" />
-          {screen === "splash" && <SplashScreen onFinish={() => setScreen("login")} />}
-          {screen === "login"  && <LoginScreen  onLogin={() => setScreen("app")} />}
-          {screen === "app"    && <MainTabs />}
+          <AppNavigator />
         </NavigationContainer>
       </AppProvider>
     </GestureHandlerRootView>

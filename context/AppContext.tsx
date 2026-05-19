@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   apiLogin, apiDevices, apiEvents,
   type TraccarUser, type TraccarDevice, type TraccarPosition, type TraccarEvent,
@@ -6,6 +7,11 @@ import {
 import { useTraccarSocket } from "../hooks/useTraccarSocket";
 import { Vehicle } from "../data/mockData";
 import { Alert } from "../services/alertService";
+import {
+  requestNotificationPermissions, sendLocalAlert, registerBackgroundFetch,
+} from "../services/notificationService";
+
+const STORAGE_KEY = "trackco_session";
 
 const POLL_MS = 10_000;
 
@@ -64,6 +70,7 @@ interface AppContextValue {
   vehicles: Vehicle[];
   alerts: Alert[];
   loading: boolean;
+  sessionReady: boolean;
   error: string | null;
   unreadCount: number;
   wsConnected: boolean;
@@ -84,9 +91,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [basePositions, setBasePositions] = useState<Record<number, TraccarPosition>>({});
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(false);
+  const [sessionReady, setSessionReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [focusedVehicleId, setFocusedVehicleId] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Restore session from storage on mount
+  useEffect(() => {
+    AsyncStorage.getItem(STORAGE_KEY).then((raw) => {
+      if (raw) {
+        try {
+          const { token: t, user: u, jsessionid: sid } = JSON.parse(raw);
+          if (t && u) { setToken(t); setUser(u); setJsessionid(sid ?? null); }
+        } catch { /* corrupt storage — ignore */ }
+      }
+      setSessionReady(true);
+    });
+  }, []);
 
   // WebSocket for live positions (replaces polling for position updates)
   const { positions: wsPositions, devices: wsDevices, connected: wsConnected } = useTraccarSocket(jsessionid);
@@ -103,17 +124,34 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setBaseDevices(devices);
       setBasePositions(posMap);
 
-      const alertIds = new Set(events.map((e) => e.deviceId));
       const nameMap = Object.fromEntries(devices.map((d) => [d.id, d.name]));
 
-      setAlerts(events.map((e): Alert => ({
-        id:          String(e.id),
-        vehicleName: nameMap[e.deviceId] ?? String(e.deviceId),
-        color:       EVENT_COLOR[e.type] ?? "#F59E0B",
-        message:     EVENT_LABEL[e.type] ?? e.type,
-        time:        timeAgo(e.serverTime),
-        read:        false,
-      })));
+      setAlerts((prev) => {
+        const prevIds = new Set(prev.map((a) => a.id));
+        const newAlerts = events
+          .filter((e) => !prevIds.has(String(e.id)))
+          .map((e): Alert => ({
+            id:          String(e.id),
+            vehicleName: nameMap[e.deviceId] ?? String(e.deviceId),
+            color:       EVENT_COLOR[e.type] ?? "#F59E0B",
+            message:     EVENT_LABEL[e.type] ?? e.type,
+            time:        timeAgo(e.serverTime),
+            read:        false,
+          }));
+
+        // Fire local notification for each new alert (max 3)
+        newAlerts.slice(0, 3).forEach((a) => {
+          sendLocalAlert(`⚠️ ${a.message}`, a.vehicleName);
+        });
+        if (newAlerts.length > 3) {
+          sendLocalAlert(`${newAlerts.length} nuevas alertas`, "Abre la app para verlas");
+        }
+
+        return [
+          ...newAlerts,
+          ...prev.map((a) => ({ ...a })),
+        ].slice(0, 100); // keep last 100
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error de red");
     }
@@ -127,6 +165,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setToken(t);
       setUser(u);
       setJsessionid(sid);
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ token: t, user: u, jsessionid: sid }));
+      // Request notification permissions after login and register background task
+      requestNotificationPermissions().then((granted) => {
+        if (granted) registerBackgroundFetch();
+      });
     } catch (err) {
       throw err;
     } finally {
@@ -142,6 +185,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setBasePositions({});
     setAlerts([]);
     if (timerRef.current) clearInterval(timerRef.current);
+    AsyncStorage.removeItem(STORAGE_KEY);
   }, []);
 
   useEffect(() => {
@@ -179,7 +223,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider value={{
-      token, user, jsessionid, vehicles, alerts, loading, error,
+      token, user, jsessionid, vehicles, alerts, loading, sessionReady, error,
       unreadCount, wsConnected, focusedVehicleId, setFocusedVehicleId,
       login, logout, setAlerts,
     }}>

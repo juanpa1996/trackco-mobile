@@ -5,9 +5,7 @@ import {
 } from "react-native";
 import { useAppContext } from "../context/AppContext";
 
-interface Props { onLogin: () => void; }
-
-export default function LoginScreen({ onLogin }: Props) {
+export default function LoginScreen({ onLogin: _onLogin }: { onLogin?: () => void }) {
   const { login } = useAppContext();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,7 +21,7 @@ export default function LoginScreen({ onLogin }: Props) {
     setError("");
     try {
       await login(email.trim(), password);
-      onLogin();
+      // Navigation is driven by token state in AppNavigator — no callback needed
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error de conexión");
     } finally {

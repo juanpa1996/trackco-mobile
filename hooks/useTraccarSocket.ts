@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { TraccarDevice, TraccarPosition } from "../services/traccarService";
 
+// TODO: migrate to wss:// once nginx + SSL (certbot) is configured on the Traccar server
 const WS_URL = "ws://167.99.239.193:8082/api/socket";
 const RECONNECT_DELAY = 3000;
 const MAX_RECONNECT = 10;
