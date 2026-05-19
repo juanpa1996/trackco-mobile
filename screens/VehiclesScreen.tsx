@@ -21,8 +21,8 @@ export default function VehiclesScreen({ navigation }: Props) {
   return (
     <View style={s.container}>
       <View style={s.header}>
-        <Text style={s.title}>Flota</Text>
-        <Text style={s.subtitle}>{total} vehículos registrados</Text>
+        <Text style={s.title}>Unidades</Text>
+        <Text style={s.subtitle}>{total} unidad{total !== 1 ? "es" : ""} registrada{total !== 1 ? "s" : ""}</Text>
       </View>
 
       {/* KPI row */}
@@ -44,7 +44,7 @@ export default function VehiclesScreen({ navigation }: Props) {
         {vehicles.length === 0 && (
           <View style={s.empty}>
             <Ionicons name="car-outline" size={48} color={Colors.textDark} />
-            <Text style={s.emptyText}>Sin vehículos registrados</Text>
+            <Text style={s.emptyText}>Sin unidades registradas</Text>
           </View>
         )}
         {vehicles.map(v => {

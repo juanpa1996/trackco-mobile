@@ -3,6 +3,7 @@ import {
   apiLogin, apiDevices, apiEvents,
   type TraccarUser, type TraccarDevice, type TraccarPosition, type TraccarEvent,
 } from "../services/traccarService";
+import { useTraccarSocket } from "../hooks/useTraccarSocket";
 import { Vehicle } from "../data/mockData";
 import { Alert } from "../services/alertService";
 
@@ -59,11 +60,13 @@ const EVENT_COLOR: Record<string, "#F59E0B" | "#EF4444" | "#6C47FF"> = {
 interface AppContextValue {
   token: string | null;
   user: TraccarUser | null;
+  jsessionid: string | null;
   vehicles: Vehicle[];
   alerts: Alert[];
   loading: boolean;
   error: string | null;
   unreadCount: number;
+  wsConnected: boolean;
   focusedVehicleId: string | null;
   setFocusedVehicleId: (id: string | null) => void;
   login: (email: string, password: string) => Promise<void>;
@@ -76,12 +79,17 @@ const AppContext = createContext<AppContextValue | null>(null);
 export function AppProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<TraccarUser | null>(null);
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [jsessionid, setJsessionid] = useState<string | null>(null);
+  const [baseDevices, setBaseDevices] = useState<TraccarDevice[]>([]);
+  const [basePositions, setBasePositions] = useState<Record<number, TraccarPosition>>({});
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [focusedVehicleId, setFocusedVehicleId] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // WebSocket for live positions (replaces polling for position updates)
+  const { positions: wsPositions, devices: wsDevices, connected: wsConnected } = useTraccarSocket(jsessionid);
 
   const fetchData = useCallback(async (t: string) => {
     try {
@@ -92,26 +100,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       ]);
 
       const posMap = Object.fromEntries(positions.map((p) => [p.deviceId, p]));
+      setBaseDevices(devices);
+      setBasePositions(posMap);
+
       const alertIds = new Set(events.map((e) => e.deviceId));
       const nameMap = Object.fromEntries(devices.map((d) => [d.id, d.name]));
-
-      setVehicles(devices.map((d): Vehicle => {
-        const pos = posMap[d.id];
-        const kmh = Math.round((pos?.speed ?? 0) * 1.852);
-        return {
-          id: String(d.id),
-          name: d.name,
-          plate: d.uniqueId,
-          type: resolveType(d.category),
-          status: resolveStatus(d, pos, alertIds.has(d.id)),
-          speed: kmh,
-          lat: pos?.latitude ?? 6.2442,
-          lng: pos?.longitude ?? -75.5812,
-          battery: pos?.attributes?.batteryLevel ?? 0,
-          address: "—",
-          lastUpdate: timeAgo(d.lastUpdate),
-        };
-      }));
 
       setAlerts(events.map((e): Alert => ({
         id:          String(e.id),
@@ -130,9 +123,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     setError(null);
     try {
-      const { token: t, user: u } = await apiLogin(email, password);
+      const { token: t, user: u, jsessionid: sid } = await apiLogin(email, password);
       setToken(t);
       setUser(u);
+      setJsessionid(sid);
     } catch (err) {
       throw err;
     } finally {
@@ -143,7 +137,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     setToken(null);
     setUser(null);
-    setVehicles([]);
+    setJsessionid(null);
+    setBaseDevices([]);
+    setBasePositions({});
     setAlerts([]);
     if (timerRef.current) clearInterval(timerRef.current);
   }, []);
@@ -156,12 +152,35 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [token, fetchData]);
 
+  // Merge base positions with live WebSocket positions — WS wins if available
+  const vehicles: Vehicle[] = baseDevices.map((d): Vehicle => {
+    const livePos = wsPositions[d.id];
+    const basePos = basePositions[d.id];
+    const pos = livePos ?? basePos;
+    const kmh = Math.round((pos?.speed ?? 0) * 1.852);
+    const wsDevice = wsDevices[d.id];
+    const effectiveStatus = wsDevice?.status ?? d.status;
+    return {
+      id: String(d.id),
+      name: d.name,
+      plate: d.uniqueId,
+      type: resolveType(d.category),
+      status: resolveStatus({ ...d, status: effectiveStatus as TraccarDevice["status"] }, pos, false),
+      speed: kmh,
+      lat: pos?.latitude ?? 6.2442,
+      lng: pos?.longitude ?? -75.5812,
+      battery: pos?.attributes?.batteryLevel ?? 0,
+      address: "—",
+      lastUpdate: timeAgo(d.lastUpdate),
+    };
+  });
+
   const unreadCount = alerts.filter((a) => !a.read).length;
 
   return (
     <AppContext.Provider value={{
-      token, user, vehicles, alerts, loading, error,
-      unreadCount, focusedVehicleId, setFocusedVehicleId,
+      token, user, jsessionid, vehicles, alerts, loading, error,
+      unreadCount, wsConnected, focusedVehicleId, setFocusedVehicleId,
       login, logout, setAlerts,
     }}>
       {children}

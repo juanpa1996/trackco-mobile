@@ -40,7 +40,7 @@ export interface TraccarEvent {
   serverTime: string;
 }
 
-export async function apiLogin(email: string, password: string): Promise<{ token: string; user: TraccarUser }> {
+export async function apiLogin(email: string, password: string): Promise<{ token: string; user: TraccarUser; jsessionid: string | null }> {
   const res = await fetch(`${API}/traccar/session`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -48,7 +48,7 @@ export async function apiLogin(email: string, password: string): Promise<{ token
   });
   const data = await res.json();
   if (!data.success) throw new Error(data.error ?? "Credenciales incorrectas");
-  return { token: data.token, user: data.user };
+  return { token: data.token, user: data.user, jsessionid: data.jsessionid ?? null };
 }
 
 export async function apiDevices(token: string): Promise<{ devices: TraccarDevice[]; positions: TraccarPosition[] }> {

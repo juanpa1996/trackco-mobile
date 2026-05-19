@@ -6,7 +6,7 @@ import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { useAppContext } from "../context/AppContext";
 import { Colors, Spacing, Radius, Font } from "../theme";
 
-type TabNav = BottomTabNavigationProp<{ Mapa: undefined; Vehículos: undefined; Alertas: undefined }>;
+type TabNav = BottomTabNavigationProp<{ Mapa: undefined; Unidades: undefined; Alertas: undefined }>;
 
 type AlertColor = "#F59E0B" | "#EF4444" | "#6C47FF";
 

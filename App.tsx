@@ -18,7 +18,7 @@ const Tab = createBottomTabNavigator();
 const VehiclesStack = createNativeStackNavigator();
 
 const TAB_ICON: Record<string, string> = {
-  Mapa: "📍", Vehículos: "🚗", Historial: "🕐", Alertas: "🔔",
+  Mapa: "📍", Unidades: "📡", Historial: "🕐", Alertas: "🔔",
 };
 
 type Screen = "splash" | "login" | "app";
@@ -56,7 +56,7 @@ function MainTabs() {
       })}
     >
       <Tab.Screen name="Mapa"      component={MapScreen} />
-      <Tab.Screen name="Vehículos" component={VehiclesNavigator} />
+      <Tab.Screen name="Unidades" component={VehiclesNavigator} />
       <Tab.Screen name="Historial" component={HistoryScreen} />
       <Tab.Screen
         name="Alertas"
