@@ -15,11 +15,20 @@ const STORAGE_KEY = "trackco_session";
 
 const POLL_MS = 10_000;
 
+const CATEGORY_TYPE_MAP: Record<string, Vehicle["type"]> = {
+  car: "car", pickup: "car", offroad: "car", van: "car", default: "car", arrow: "car",
+  motorcycle: "moto", moto: "moto", scooter: "moto",
+  truck: "truck", bus: "truck", tractor: "truck",
+  bicycle: "bicycle",
+  boat: "boat", ship: "boat",
+  person: "person",
+  animal: "pet",
+  phone: "phone",
+  object: "object",
+};
+
 function resolveType(category?: string): Vehicle["type"] {
-  const c = (category ?? "").toLowerCase();
-  if (c.includes("motorcycle") || c.includes("moto") || c.includes("scooter")) return "moto";
-  if (c.includes("truck") || c.includes("van") || c.includes("bus")) return "truck";
-  return "car";
+  return CATEGORY_TYPE_MAP[(category ?? "").toLowerCase().trim()] ?? "car";
 }
 
 function resolveStatus(device: TraccarDevice, position?: TraccarPosition, hasAlert?: boolean): Vehicle["status"] {

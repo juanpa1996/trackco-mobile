@@ -4,7 +4,7 @@ export interface Vehicle {
   id: string;
   name: string;
   plate: string;
-  type: "car" | "moto" | "truck";
+  type: "car" | "moto" | "truck" | "bicycle" | "boat" | "person" | "pet" | "phone" | "object";
   status: VehicleStatus;
   speed: number;
   lat: number;
