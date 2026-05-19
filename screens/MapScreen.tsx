@@ -70,7 +70,8 @@ function buildMapHTML(vehicles: Vehicle[], selectedId: string) {
 <div id="map"></div>
 <script>
   var map = L.map('map',{zoomControl:false,attributionControl:false}).setView([${lat},${lng}],14);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_matter/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:20,attribution:'© CARTO'}).addTo(map);
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',{maxZoom:16,attribution:'© Esri'}).addTo(map);
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}',{maxZoom:16,attribution:'',opacity:0.9}).addTo(map);
   ${markers}
 </script>
 </body>
