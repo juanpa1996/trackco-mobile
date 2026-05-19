@@ -50,7 +50,7 @@ function buildMapHTML(route: RoutePoint[], currentIndex: number) {
 <body><div id="map"></div>
 <script>
   var map=L.map('map',{zoomControl:false,attributionControl:false});
-  L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png',{maxZoom:20,attribution:'© Stadia Maps'}).addTo(map);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_matter/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:20,attribution:'© CARTO'}).addTo(map);
   var all=[${coords}];
   if(all.length>1){L.polyline(all,{color:'#334155',weight:3,opacity:0.5}).addTo(map); map.fitBounds(L.latLngBounds(all),{padding:[40,40],maxZoom:16});}
   ${segments}
