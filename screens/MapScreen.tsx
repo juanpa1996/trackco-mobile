@@ -41,12 +41,9 @@ function buildMapHTML(vehicles: Vehicle[], selectedId: string) {
     const outer = isSelected ? 50 : 40;
     const inner = isSelected ? 34 : 26;
     const ring = isSelected ? `<div style="position:absolute;inset:0;border-radius:50%;border:2px solid ${color};opacity:0.5;"></div>` : "";
-    const svg = `<div style="position:relative;width:${outer}px;height:${outer}px;display:flex;align-items:center;justify-content:center;">
-      ${ring}
-      <div style="width:${inner}px;height:${inner}px;border-radius:50%;background:#111827;border:2px solid ${color};display:flex;align-items:center;justify-content:center;font-size:${isSelected ? 16 : 12}px;z-index:1;">${emoji}</div>
-    </div>`;
+    const html = `<div style="position:relative;width:${outer}px;height:${outer}px;display:flex;align-items:center;justify-content:center;">${ring}<div style="width:${inner}px;height:${inner}px;border-radius:50%;background:#111827;border:2px solid ${color};display:flex;align-items:center;justify-content:center;font-size:${isSelected ? 16 : 12}px;z-index:1;">${emoji}</div></div>`;
     return `
-      var icon_${v.id} = L.divIcon({ className:'', html:'${svg.replace(/'/g, "\\'")}', iconSize:[${outer},${outer}], iconAnchor:[${outer/2},${outer/2}] });
+      var icon_${v.id} = L.divIcon({ className:'', html:${JSON.stringify(html)}, iconSize:[${outer},${outer}], iconAnchor:[${outer/2},${outer/2}] });
       var m_${v.id} = L.marker([${v.lat}, ${v.lng}], { icon: icon_${v.id} })
         .addTo(map)
         .bindPopup('<div style="font-family:sans-serif;padding:4px 2px"><b style="color:#fff;font-size:13px">${v.name}</b><br><span style="color:#94A3B8;font-size:11px">${v.plate} · ${v.speed} km/h</span></div>');
