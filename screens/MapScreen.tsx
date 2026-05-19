@@ -50,7 +50,7 @@ function buildMapHTML(vehicles: Vehicle[], selectedId: string) {
 <div id="map"></div>
 <script>
   var map = L.map('map',{zoomControl:false,attributionControl:false}).setView([${lat},${lng}],14);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:20}).addTo(map);
+  L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png',{maxZoom:20,attribution:'© Stadia Maps © OpenMapTiles © OpenStreetMap'}).addTo(map);
   ${markers}
 </script>
 </body>
