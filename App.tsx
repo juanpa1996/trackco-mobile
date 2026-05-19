@@ -1,20 +1,85 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { NavigationContainer } from "@react-navigation/native";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { StatusBar } from "expo-status-bar";
+import { Text } from "react-native";
+import { useState } from "react";
+import LoginScreen    from "./screens/LoginScreen";
+import SplashScreen   from "./screens/SplashScreen";
+import MapScreen      from "./screens/MapScreen";
+import VehiclesScreen from "./screens/VehiclesScreen";
+import AlertsScreen   from "./screens/AlertsScreen";
+import HistoryScreen  from "./screens/HistoryScreen";
+import VehicleDetailScreen from "./screens/VehicleDetailScreen";
+import { AppProvider, useAppContext } from "./context/AppContext";
 
-export default function App() {
+const Tab = createBottomTabNavigator();
+const VehiclesStack = createNativeStackNavigator();
+
+const TAB_ICON: Record<string, string> = {
+  Mapa: "📍", Vehículos: "🚗", Historial: "🕐", Alertas: "🔔",
+};
+
+type Screen = "splash" | "login" | "app";
+
+function VehiclesNavigator() {
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <VehiclesStack.Navigator screenOptions={{ headerShown: false }}>
+      <VehiclesStack.Screen name="VehicleList"   component={VehiclesScreen as any} />
+      <VehiclesStack.Screen name="VehicleDetail" component={VehicleDetailScreen as any} />
+    </VehiclesStack.Navigator>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+function MainTabs() {
+  const { unreadCount } = useAppContext();
+  return (
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: "#0F1629",
+          borderTopColor: "rgba(255,255,255,0.07)",
+          paddingBottom: 8,
+          paddingTop: 8,
+          height: 70,
+        },
+        tabBarActiveTintColor:   "#00D4FF",
+        tabBarInactiveTintColor: "#64748B",
+        tabBarLabel: ({ color }) => (
+          <Text style={{ color, fontSize: 11, fontWeight: "600" }}>{route.name}</Text>
+        ),
+        tabBarIcon: ({ color }) => (
+          <Text style={{ fontSize: 22 }}>{TAB_ICON[route.name]}</Text>
+        ),
+      })}
+    >
+      <Tab.Screen name="Mapa"      component={MapScreen} />
+      <Tab.Screen name="Vehículos" component={VehiclesNavigator} />
+      <Tab.Screen name="Historial" component={HistoryScreen} />
+      <Tab.Screen
+        name="Alertas"
+        component={AlertsScreen}
+        options={{ tabBarBadge: unreadCount > 0 ? unreadCount : undefined }}
+      />
+    </Tab.Navigator>
+  );
+}
+
+export default function App() {
+  const [screen, setScreen] = useState<Screen>("splash");
+
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <AppProvider>
+        <NavigationContainer>
+          <StatusBar style="light" backgroundColor="#080D1A" />
+          {screen === "splash" && <SplashScreen onFinish={() => setScreen("login")} />}
+          {screen === "login"  && <LoginScreen  onLogin={() => setScreen("app")} />}
+          {screen === "app"    && <MainTabs />}
+        </NavigationContainer>
+      </AppProvider>
+    </GestureHandlerRootView>
+  );
+}
