@@ -1,9 +1,11 @@
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from "react-native";
 import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useVehiclesContext } from "../context/VehiclesContext";
 import type { VehiclesStackParams } from "./VehicleDetailScreen";
 import { Colors, Spacing, Radius, Font, statusColor, statusLabel } from "../theme";
+import { ErrorBanner } from "../components/ErrorBanner";
+import { SkeletonCard } from "../components/SkeletonCard";
 
 type Props = NativeStackScreenProps<VehiclesStackParams, "VehicleList">;
 
@@ -12,7 +14,7 @@ const VEHICLE_ICON: Record<string, any> = {
 };
 
 export default function VehiclesScreen({ navigation }: Props) {
-  const { vehicles } = useVehiclesContext();
+  const { vehicles, loading, error } = useVehiclesContext();
   const total   = vehicles.length;
   const moving  = vehicles.filter(v => v.status === "moving").length;
   const alert   = vehicles.filter(v => v.status === "alert").length;
@@ -40,8 +42,11 @@ export default function VehiclesScreen({ navigation }: Props) {
         ))}
       </View>
 
+      <ErrorBanner message={error} />
+
       <ScrollView contentContainerStyle={s.list}>
-        {vehicles.length === 0 && (
+        {loading && vehicles.length === 0 && [0, 1, 2, 3].map((i) => <SkeletonCard key={i} />)}
+        {!loading && vehicles.length === 0 && (
           <View style={s.empty}>
             <Ionicons name="car-outline" size={48} color={Colors.textDark} />
             <Text style={s.emptyText}>Sin unidades registradas</Text>

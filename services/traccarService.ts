@@ -1,3 +1,5 @@
+import { triggerUnauthorized } from "./authStore";
+
 const API = "https://app.trackco.com.co/api";
 
 export interface TraccarUser {
@@ -40,6 +42,13 @@ export interface TraccarEvent {
   serverTime: string;
 }
 
+function checkUnauthorized(res: Response): void {
+  if (res.status === 401) {
+    triggerUnauthorized();
+    throw new Error("Sesión expirada");
+  }
+}
+
 export async function apiLogin(email: string, password: string): Promise<{ token: string; user: TraccarUser; jsessionid: string | null }> {
   const res = await fetch(`${API}/traccar/session`, {
     method: "POST",
@@ -55,6 +64,7 @@ export async function apiDevices(token: string): Promise<{ devices: TraccarDevic
   const res = await fetch(`${API}/traccar/devices`, {
     headers: { "x-traccar-token": token },
   });
+  checkUnauthorized(res);
   const data = await res.json();
   if (!data.success) throw new Error(data.error ?? "Error dispositivos");
   return { devices: data.devices ?? [], positions: data.positions ?? [] };
@@ -64,6 +74,7 @@ export async function apiEvents(token: string): Promise<TraccarEvent[]> {
   const res = await fetch(`${API}/traccar/events`, {
     headers: { "x-traccar-token": token },
   });
+  checkUnauthorized(res);
   const data = await res.json();
   return data.success ? (data.events ?? []) : [];
 }
@@ -78,6 +89,19 @@ export async function apiHistory(
   const res = await fetch(`${API}/traccar/history?${params}`, {
     headers: { "x-traccar-token": token },
   });
+  checkUnauthorized(res);
   const data = await res.json();
   return data.success ? (data.positions ?? []) : [];
+}
+
+export async function apiRegisterPushToken(token: string, pushToken: string): Promise<void> {
+  try {
+    await fetch(`${API}/traccar/push-token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-traccar-token": token },
+      body: JSON.stringify({ pushToken }),
+    });
+  } catch {
+    // Best-effort — silently ignore if endpoint not available
+  }
 }

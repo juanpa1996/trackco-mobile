@@ -8,6 +8,7 @@ import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import { useVehiclesContext } from "../context/VehiclesContext";
 import { Vehicle } from "../data/mockData";
 import { Colors, statusColor, statusLabel } from "../theme";
+import { ErrorBanner } from "../components/ErrorBanner";
 
 const VEHICLE_ICON: Record<string, string> = {
   car:     "car-side",
@@ -81,7 +82,7 @@ export default function MapScreen() {
   const { height: screenH } = useWindowDimensions();
   const EXPANDED_H = Math.round(screenH * 0.62);
 
-  const { vehicles, loading, focusedVehicleId, setFocusedVehicleId, wsConnected } = useVehiclesContext();
+  const { vehicles, loading, error, focusedVehicleId, setFocusedVehicleId, wsConnected } = useVehiclesContext();
   const [selected, setSelected] = useState<Vehicle | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [search, setSearch] = useState("");
@@ -156,6 +157,13 @@ export default function MapScreen() {
         key={sel.id + sel.lat + sel.lng}
         originWhitelist={["*"]}
       />
+
+      {/* Error banner */}
+      {error && (
+        <View style={s.errorOverlay}>
+          <ErrorBanner message={error} />
+        </View>
+      )}
 
       {/* Top badge */}
       <View style={s.topOverlay}>
@@ -329,6 +337,7 @@ export default function MapScreen() {
 const s = StyleSheet.create({
   container:    { flex: 1, backgroundColor: Colors.bg },
   map:          { flex: 1 },
+  errorOverlay: { position: "absolute", top: 100, left: 0, right: 0, zIndex: 10 },
   topOverlay:   { position: "absolute", top: 52, left: 16, right: 16, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   liveTag:      { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(6,11,24,0.88)", borderRadius: 20, paddingHorizontal: 12, paddingVertical: 7, borderWidth: 1 },
   liveDot:      { width: 7, height: 7, borderRadius: 4 },

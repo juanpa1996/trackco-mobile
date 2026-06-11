@@ -3,6 +3,7 @@ import * as TaskManager from "expo-task-manager";
 import * as BackgroundFetch from "expo-background-fetch";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { apiDevices, apiEvents } from "./traccarService";
+import { EVENT_LABEL } from "../utils/events";
 
 export const BACKGROUND_FETCH_TASK = "trackco-alert-check";
 const LAST_ALERT_KEY = "trackco_last_alert_id";
@@ -54,15 +55,6 @@ export async function registerBackgroundFetch() {
   }
 }
 
-const EVENT_LABEL: Record<string, string> = {
-  deviceOverspeed: "Exceso de velocidad",
-  geofenceExit:    "Salida de zona",
-  geofenceEnter:   "Entrada a zona",
-  ignitionOff:     "Motor apagado",
-  ignitionOn:      "Motor encendido",
-  deviceOffline:   "Sin señal",
-  lowBattery:      "Batería baja",
-};
 
 TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
   try {

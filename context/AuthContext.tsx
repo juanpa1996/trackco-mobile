@@ -1,9 +1,8 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { apiLogin, type TraccarUser } from "../services/traccarService";
-import {
-  requestNotificationPermissions, registerBackgroundFetch,
-} from "../services/notificationService";
+import { apiLogin, apiRegisterPushToken, type TraccarUser } from "../services/traccarService";
+import { setOnUnauthorized } from "../services/authStore";
+import { getExpoPushToken, requestNotificationPermissions, registerBackgroundFetch } from "../services/notificationService";
 
 const STORAGE_KEY = "trackco_session";
 
@@ -40,6 +39,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const logout = useCallback(() => {
+    setToken(null);
+    setUser(null);
+    setJsessionid(null);
+    AsyncStorage.removeItem(STORAGE_KEY);
+  }, []);
+
+  // Register logout as the 401 handler so any API call that gets "session expired" auto-logs out
+  useEffect(() => {
+    setOnUnauthorized(logout);
+  }, [logout]);
+
   const login = useCallback(async (email: string, password: string) => {
     setLoading(true);
     setError(null);
@@ -49,21 +60,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(u);
       setJsessionid(sid);
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ token: t, user: u, jsessionid: sid }));
-      requestNotificationPermissions().then((granted) => {
-        if (granted) registerBackgroundFetch();
-      });
+
+      const granted = await requestNotificationPermissions();
+      if (granted) {
+        registerBackgroundFetch();
+        const pushToken = await getExpoPushToken();
+        if (pushToken) apiRegisterPushToken(t, pushToken);
+      }
     } catch (err) {
       throw err;
     } finally {
       setLoading(false);
     }
-  }, []);
-
-  const logout = useCallback(() => {
-    setToken(null);
-    setUser(null);
-    setJsessionid(null);
-    AsyncStorage.removeItem(STORAGE_KEY);
   }, []);
 
   return (

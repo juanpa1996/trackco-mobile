@@ -3,6 +3,8 @@ import { apiDevices, type TraccarDevice, type TraccarPosition } from "../service
 import { useTraccarSocket } from "../hooks/useTraccarSocket";
 import { Vehicle } from "../data/mockData";
 import { useAuthContext } from "./AuthContext";
+import { timeAgo } from "../utils/time";
+import { reverseGeocode } from "../utils/geocoding";
 
 const POLL_MS = 10_000;
 
@@ -29,15 +31,6 @@ function resolveStatus(device: TraccarDevice, position?: TraccarPosition): Vehic
   return "stopped";
 }
 
-function timeAgo(iso: string): string {
-  if (!iso) return "—";
-  const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (diff < 60) return "Hace unos seg";
-  if (diff < 3600) return `Hace ${Math.floor(diff / 60)} min`;
-  if (diff < 86400) return `Hace ${Math.floor(diff / 3600)} h`;
-  return `Hace ${Math.floor(diff / 86400)} d`;
-}
-
 interface VehiclesContextValue {
   vehicles: Vehicle[];
   devices: TraccarDevice[];
@@ -54,10 +47,13 @@ export function VehiclesProvider({ children }: { children: ReactNode }) {
   const { token, jsessionid } = useAuthContext();
   const [baseDevices, setBaseDevices] = useState<TraccarDevice[]>([]);
   const [basePositions, setBasePositions] = useState<Record<number, TraccarPosition>>({});
+  const [addressMap, setAddressMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [focusedVehicleId, setFocusedVehicleId] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const geocodingRef = useRef<Set<string>>(new Set());
+  const lastGeoKey = useRef<Record<string, string>>({});
 
   const { positions: wsPositions, devices: wsDevices, connected: wsConnected } = useTraccarSocket(jsessionid);
   const wsConnectedRef = useRef(wsConnected);
@@ -79,17 +75,37 @@ export function VehiclesProvider({ children }: { children: ReactNode }) {
     if (!token) {
       setBaseDevices([]);
       setBasePositions({});
+      setAddressMap({});
       if (timerRef.current) clearInterval(timerRef.current);
       return;
     }
     setLoading(true);
     fetchVehicles(token).finally(() => setLoading(false));
-    // Skip REST poll when WebSocket is active — WS already delivers live positions
+    // Skip REST poll for positions when WebSocket is active
     timerRef.current = setInterval(() => {
       if (!wsConnectedRef.current) fetchVehicles(token);
     }, POLL_MS);
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [token, fetchVehicles]);
+
+  // Resolve addresses when positions change (rate-limited via geocoding util)
+  useEffect(() => {
+    baseDevices.forEach((d) => {
+      const id = String(d.id);
+      const pos = wsPositions[d.id] ?? basePositions[d.id];
+      if (!pos) return;
+
+      const geoKey = `${pos.latitude.toFixed(4)},${pos.longitude.toFixed(4)}`;
+      if (lastGeoKey.current[id] === geoKey || geocodingRef.current.has(id)) return;
+
+      lastGeoKey.current[id] = geoKey;
+      geocodingRef.current.add(id);
+      reverseGeocode(pos.latitude, pos.longitude).then((addr) => {
+        geocodingRef.current.delete(id);
+        setAddressMap((prev) => ({ ...prev, [id]: addr }));
+      });
+    });
+  }, [baseDevices, basePositions, wsPositions]);
 
   const vehicles: Vehicle[] = baseDevices.map((d): Vehicle => {
     const livePos = wsPositions[d.id];
@@ -108,7 +124,7 @@ export function VehiclesProvider({ children }: { children: ReactNode }) {
       lat: pos?.latitude ?? 6.2442,
       lng: pos?.longitude ?? -75.5812,
       battery: pos?.attributes?.batteryLevel ?? 0,
-      address: "—",
+      address: addressMap[String(d.id)] ?? "—",
       lastUpdate: timeAgo(d.lastUpdate),
     };
   });
