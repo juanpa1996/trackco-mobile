@@ -5,6 +5,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StatusBar } from "expo-status-bar";
 import { Text } from "react-native";
 import { useState } from "react";
+import { Ionicons } from "@expo/vector-icons";
 import LoginScreen    from "./screens/LoginScreen";
 import SplashScreen   from "./screens/SplashScreen";
 import MapScreen      from "./screens/MapScreen";
@@ -12,13 +13,18 @@ import VehiclesScreen from "./screens/VehiclesScreen";
 import AlertsScreen   from "./screens/AlertsScreen";
 import HistoryScreen  from "./screens/HistoryScreen";
 import VehicleDetailScreen from "./screens/VehicleDetailScreen";
-import { AppProvider, useAppContext } from "./context/AppContext";
+import { AppProvider } from "./context/AppContext";
+import { useAuthContext } from "./context/AuthContext";
+import { useAlertsContext } from "./context/AlertsContext";
 
 const Tab = createBottomTabNavigator();
 const VehiclesStack = createNativeStackNavigator();
 
-const TAB_ICON: Record<string, string> = {
-  Mapa: "📍", Unidades: "📡", Historial: "🕐", Alertas: "🔔",
+const TAB_ICON_FILLED: Record<string, string> = {
+  Mapa: "map", Unidades: "car", Historial: "time", Alertas: "notifications",
+};
+const TAB_ICON_OUTLINE: Record<string, string> = {
+  Mapa: "map-outline", Unidades: "car-outline", Historial: "time-outline", Alertas: "notifications-outline",
 };
 
 type Screen = "splash" | "login" | "app";
@@ -33,7 +39,7 @@ function VehiclesNavigator() {
 }
 
 function MainTabs() {
-  const { unreadCount } = useAppContext();
+  const { unreadCount } = useAlertsContext();
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -50,8 +56,12 @@ function MainTabs() {
         tabBarLabel: ({ color }) => (
           <Text style={{ color, fontSize: 11, fontWeight: "600" }}>{route.name}</Text>
         ),
-        tabBarIcon: ({ color }) => (
-          <Text style={{ fontSize: 22 }}>{TAB_ICON[route.name]}</Text>
+        tabBarIcon: ({ color, focused }) => (
+          <Ionicons
+            name={(focused ? TAB_ICON_FILLED : TAB_ICON_OUTLINE)[route.name] as any}
+            size={24}
+            color={color}
+          />
         ),
       })}
     >
@@ -68,10 +78,9 @@ function MainTabs() {
 }
 
 function AppNavigator() {
-  const { token, sessionReady } = useAppContext();
+  const { token, sessionReady } = useAuthContext();
   const [splashDone, setSplashDone] = useState(false);
 
-  // Decide screen: wait for both splash animation and session restore
   const ready = splashDone && sessionReady;
   const screen: Screen = !ready ? "splash" : token ? "app" : "login";
 

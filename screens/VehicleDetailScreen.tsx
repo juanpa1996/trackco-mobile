@@ -3,7 +3,7 @@ import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { Vehicle } from "../data/mockData";
 import { Colors, Spacing, Radius, Font, statusColor, statusLabel } from "../theme";
-import { useAppContext } from "../context/AppContext";
+import { useVehiclesContext } from "../context/VehiclesContext";
 
 export type VehiclesStackParams = {
   VehicleList: undefined;
@@ -18,7 +18,7 @@ const VEHICLE_ICON: Record<string, any> = {
 
 export default function VehicleDetailScreen({ route, navigation }: Props) {
   const { vehicle: v } = route.params;
-  const { setFocusedVehicleId } = useAppContext();
+  const { setFocusedVehicleId } = useVehiclesContext();
   const color = statusColor(v.status);
 
   function goToMap() {

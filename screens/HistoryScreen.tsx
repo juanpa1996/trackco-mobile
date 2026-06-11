@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from "react-native";
 import { WebView } from "react-native-webview";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { useAppContext } from "../context/AppContext";
+import { useAuthContext } from "../context/AuthContext";
+import { useVehiclesContext } from "../context/VehiclesContext";
 import { apiHistory, TraccarPosition } from "../services/traccarService";
 
 interface RoutePoint { lat: number; lng: number; speed: number; time: string; }
@@ -66,7 +67,8 @@ function buildMapHTML(route: RoutePoint[], currentIndex: number) {
 }
 
 export default function HistoryScreen() {
-  const { token, vehicles } = useAppContext();
+  const { token } = useAuthContext();
+  const { vehicles } = useVehiclesContext();
   const [vehicleIdx, setVehicleIdx] = useState(0);
   const [dateOffset, setDateOffset] = useState(0);
   const [route, setRoute] = useState<RoutePoint[]>([]);

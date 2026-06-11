@@ -5,7 +5,7 @@ import {
 } from "react-native";
 import { WebView } from "react-native-webview";
 import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
-import { useAppContext } from "../context/AppContext";
+import { useVehiclesContext } from "../context/VehiclesContext";
 import { Vehicle } from "../data/mockData";
 import { Colors, statusColor, statusLabel } from "../theme";
 
@@ -81,7 +81,7 @@ export default function MapScreen() {
   const { height: screenH } = useWindowDimensions();
   const EXPANDED_H = Math.round(screenH * 0.62);
 
-  const { vehicles, loading, focusedVehicleId, setFocusedVehicleId, wsConnected } = useAppContext();
+  const { vehicles, loading, focusedVehicleId, setFocusedVehicleId, wsConnected } = useVehiclesContext();
   const [selected, setSelected] = useState<Vehicle | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [search, setSearch] = useState("");

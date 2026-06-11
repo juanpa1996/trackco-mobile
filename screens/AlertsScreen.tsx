@@ -3,7 +3,8 @@ import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from "react-nati
 import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
-import { useAppContext } from "../context/AppContext";
+import { useAlertsContext } from "../context/AlertsContext";
+import { useVehiclesContext } from "../context/VehiclesContext";
 import { Colors, Spacing, Radius, Font } from "../theme";
 
 type TabNav = BottomTabNavigationProp<{ Mapa: undefined; Unidades: undefined; Alertas: undefined }>;
@@ -17,7 +18,8 @@ const ALERT_TYPES: { color: AlertColor; icon: string; label: string }[] = [
 ];
 
 export default function AlertsScreen() {
-  const { alerts, setAlerts, setFocusedVehicleId } = useAppContext();
+  const { alerts, setAlerts } = useAlertsContext();
+  const { setFocusedVehicleId } = useVehiclesContext();
   const navigation = useNavigation<TabNav>();
   const [activeFilter, setActiveFilter] = useState<AlertColor | null>(null);
 

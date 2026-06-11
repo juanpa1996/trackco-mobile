@@ -1,7 +1,7 @@
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
 import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useAppContext } from "../context/AppContext";
+import { useVehiclesContext } from "../context/VehiclesContext";
 import type { VehiclesStackParams } from "./VehicleDetailScreen";
 import { Colors, Spacing, Radius, Font, statusColor, statusLabel } from "../theme";
 
@@ -12,7 +12,7 @@ const VEHICLE_ICON: Record<string, any> = {
 };
 
 export default function VehiclesScreen({ navigation }: Props) {
-  const { vehicles } = useAppContext();
+  const { vehicles } = useVehiclesContext();
   const total   = vehicles.length;
   const moving  = vehicles.filter(v => v.status === "moving").length;
   const alert   = vehicles.filter(v => v.status === "alert").length;
