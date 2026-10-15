@@ -12,6 +12,7 @@ import MapScreen      from "./screens/MapScreen";
 import VehiclesScreen from "./screens/VehiclesScreen";
 import AlertsScreen   from "./screens/AlertsScreen";
 import HistoryScreen  from "./screens/HistoryScreen";
+import GeofencesScreen from "./screens/GeofencesScreen";
 import VehicleDetailScreen from "./screens/VehicleDetailScreen";
 import { AppProvider } from "./context/AppContext";
 import { useAuthContext } from "./context/AuthContext";
@@ -21,10 +22,10 @@ const Tab = createBottomTabNavigator();
 const VehiclesStack = createNativeStackNavigator();
 
 const TAB_ICON_FILLED: Record<string, string> = {
-  Mapa: "map", Unidades: "car", Historial: "time", Alertas: "notifications",
+  Mapa: "map", Unidades: "car", Geocercas: "location", Historial: "time", Alertas: "notifications",
 };
 const TAB_ICON_OUTLINE: Record<string, string> = {
-  Mapa: "map-outline", Unidades: "car-outline", Historial: "time-outline", Alertas: "notifications-outline",
+  Mapa: "map-outline", Unidades: "car-outline", Geocercas: "location-outline", Historial: "time-outline", Alertas: "notifications-outline",
 };
 
 type Screen = "splash" | "login" | "app";
@@ -67,6 +68,7 @@ function MainTabs() {
     >
       <Tab.Screen name="Mapa"      component={MapScreen} />
       <Tab.Screen name="Unidades"  component={VehiclesNavigator} />
+      <Tab.Screen name="Geocercas" component={GeofencesScreen} />
       <Tab.Screen name="Historial" component={HistoryScreen} />
       <Tab.Screen
         name="Alertas"

@@ -6,6 +6,8 @@ import {
 import { WebView } from "react-native-webview";
 import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import { useVehiclesContext } from "../context/VehiclesContext";
+import { useGeofencesContext } from "../context/GeofencesContext";
+import { wktToShape } from "../utils/geofence";
 import { Vehicle } from "../data/mockData";
 import { Colors, statusColor, statusLabel } from "../theme";
 import { ErrorBanner } from "../components/ErrorBanner";
@@ -34,7 +36,25 @@ const TYPE_EMOJI: Record<string, string> = {
   object:  "📦",
 };
 
-function buildMapHTML(vehicles: Vehicle[], selectedId: string) {
+function buildGeofenceLayers(geofences: { id: number; name: string; area: string }[]): string {
+  const C = "#00D4FF";
+  return geofences.map((g) => {
+    const shape = wktToShape(g.area);
+    if (!shape) return "";
+    const label = JSON.stringify(g.name);
+    if (shape.kind === "circle") {
+      return `L.circle([${shape.center.lat},${shape.center.lng}],{radius:${shape.radius},color:'${C}',weight:2,fillColor:'${C}',fillOpacity:0.08}).addTo(map).bindTooltip(${label});`;
+    }
+    const pts = shape.points.map((p) => `[${p.lat},${p.lng}]`).join(",");
+    return `L.polygon([${pts}],{color:'${C}',weight:2,fillColor:'${C}',fillOpacity:0.08}).addTo(map).bindTooltip(${label});`;
+  }).join("\n");
+}
+
+function buildMapHTML(
+  vehicles: Vehicle[],
+  selectedId: string,
+  geofences: { id: number; name: string; area: string }[] = []
+) {
   const markers = vehicles.map((v) => {
     const color = statusColor(v.status);
     const isSelected = v.id === selectedId;
@@ -70,6 +90,7 @@ function buildMapHTML(vehicles: Vehicle[], selectedId: string) {
   var map = L.map('map',{zoomControl:false,attributionControl:false}).setView([${lat},${lng}],14);
   L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',{maxZoom:16,attribution:'© Esri'}).addTo(map);
   L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}',{maxZoom:16,attribution:'',opacity:0.9}).addTo(map);
+  ${buildGeofenceLayers(geofences)}
   ${markers}
 </script>
 </body>
@@ -83,6 +104,7 @@ export default function MapScreen() {
   const EXPANDED_H = Math.round(screenH * 0.62);
 
   const { vehicles, loading, error, focusedVehicleId, setFocusedVehicleId, wsConnected } = useVehiclesContext();
+  const { geofences } = useGeofencesContext();
   const [selected, setSelected] = useState<Vehicle | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [search, setSearch] = useState("");
@@ -140,7 +162,7 @@ export default function MapScreen() {
 
   const sel = selected ?? vehicles[0];
   const selColor = statusColor(sel.status);
-  const mapHtml = buildMapHTML(vehicles, sel.id);
+  const mapHtml = buildMapHTML(vehicles, sel.id, geofences);
 
   const filtered = vehicles.filter(
     (v) =>
@@ -154,7 +176,7 @@ export default function MapScreen() {
         source={{ html: mapHtml }}
         style={s.map}
         scrollEnabled={false}
-        key={sel.id + sel.lat + sel.lng}
+        key={sel.id + sel.lat + sel.lng + "g" + geofences.length}
         originWhitelist={["*"]}
       />
 
